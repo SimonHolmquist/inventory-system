@@ -2,14 +2,18 @@
 using Inventory.API.Data;
 using Inventory.API.Models;
 using Microsoft.EntityFrameworkCore;
+using Inventory.API.Messaging;
+using Inventory.API.DTOs;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Inventory.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(InventoryDbContext context) : ControllerBase
+public class ProductsController(InventoryDbContext context, InventoryEventPublisher publisher) : ControllerBase
 {
     private readonly InventoryDbContext _context = context;
+    private readonly InventoryEventPublisher _publisher = publisher;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Product>>> GetAll()
@@ -25,23 +29,42 @@ public class ProductsController(InventoryDbContext context) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Product>> Create(Product product)
+    public async Task<ActionResult<Product>> Create(CreateProductDto dto)
     {
+        var product = new Product
+        {
+            Name = dto.Name,
+            Description = dto.Description,
+            Price = dto.Price,
+            Stock = dto.Stock,
+            Category = dto.Category
+        };
+
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
+
+        await _publisher.Publish(product, "product.created");
+
         return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, Product updated)
+    public async Task<IActionResult> Update(int id, UpdateProductDto dto)
     {
-        if (id != updated.Id) return BadRequest();
+        var existing = await _context.Products.FindAsync(id);
+        if (existing is null)
+            return NotFound();
 
-        var exists = await _context.Products.AnyAsync(p => p.Id == id);
-        if (!exists) return NotFound();
+        existing.Name = dto.Name;
+        existing.Description = dto.Description;
+        existing.Price = dto.Price;
+        existing.Stock = dto.Stock;
+        existing.Category = dto.Category;
 
-        _context.Entry(updated).State = EntityState.Modified;
         await _context.SaveChangesAsync();
+
+        await _publisher.Publish(existing, "product.updated");
+
         return NoContent();
     }
 
@@ -53,6 +76,9 @@ public class ProductsController(InventoryDbContext context) : ControllerBase
 
         _context.Products.Remove(product);
         await _context.SaveChangesAsync();
+
+        await _publisher.Publish(product, "product.deleted");
+
         return NoContent();
     }
 }
