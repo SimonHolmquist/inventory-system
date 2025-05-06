@@ -43,4 +43,17 @@ public class InventoryEventPublisher(IConfiguration configuration)
             body: body
         );
     }
+
+    private async Task DeclareQueueAndBindAsync(IChannel channel, string queueName, string routingKey)
+    {
+        await channel.QueueDeclareAsync(queue: queueName,
+                                        durable: true,
+                                        exclusive: false,
+                                        autoDelete: false,
+                                        arguments: null);
+
+        await channel.QueueBindAsync(queue: queueName,
+                                     exchange: _exchange,
+                                     routingKey: routingKey);
+    }
 }
