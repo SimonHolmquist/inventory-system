@@ -5,6 +5,13 @@
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Docker"
+      }
     }
   }
 }

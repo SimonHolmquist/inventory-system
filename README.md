@@ -1,26 +1,133 @@
-# Technical Challenge – Inventory Notification System
+# Inventory System - .NET Technical Challenge
 
-This project is a solution for the technical challenge proposed for the Backend .NET Developer position.
+This project implements an inventory notification system using two microservices built with **.NET 8** and communicating via **RabbitMQ**.
 
-## Description
+## 🧩 Architecture
 
-A simple system for managing inventory updates between two microservices, using RabbitMQ as the messaging middleware.
+```
++-------------------+        RabbitMQ         +-------------------------+
+|                   |  --------------------> |                         |
+|  Inventory.API    |  [inventory_exchange]   |  Notification.Service   |
+|  (Producer)       |                        |  (Consumer)             |
++-------------------+                        +-------------------------+
+```
 
-The goal is to demonstrate skills in REST API development, asynchronous messaging, error handling, resiliency patterns, and software development best practices.
+- **Inventory.API**: Exposes a RESTful API to manage products.
+- **Notification.Service**: Listens to product events and logs them to a local database.
 
-## Microservices involved
+---
 
-- **Inventory.API**: Responsible for the CRUD operations of products. Publishes events to RabbitMQ when changes occur.
-- **Notification.Service**: Consumes the published events and stores a local record of the updates.
+## 🚀 Services
 
-## Technologies used
+### 📦 Inventory.API
 
-- .NET 6+
+RESTful API for inventory product management.
+
+**Endpoints:**
+- `GET /api/products` - List all products
+- `GET /api/products/{id}` - Get product by ID
+- `POST /api/products` - Create new product
+- `PUT /api/products/{id}` - Update existing product
+- `DELETE /api/products/{id}` - Delete product
+
+**Product model:**
+```json
+{
+  "id": 1,
+  "name": "Product A",
+  "description": "Product description",
+  "price": 100.00,
+  "stock": 50,
+  "category": "Electronics"
+}
+```
+
+Each action emits a corresponding event to RabbitMQ.
+
+---
+
+### 📬 Notification.Service
+
+This service consumes events from RabbitMQ:
+
+- Subscribed to:
+  - `product.created.queue`
+  - `product.updated.queue`
+  - `product.deleted.queue`
+- Saves all received events into a local SQLite database.
+- Implements basic error handling and validation.
+
+---
+
+## ⚙️ Technologies Used
+
+- .NET 8
 - RabbitMQ
 - Entity Framework Core
 - SQLite
 - Docker / Docker Compose
+- Swagger (for Inventory.API)
 
 ---
 
-This file will be updated with setup instructions, API documentation, and an architecture diagram.
+## 🐳 Running with Docker
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/SimonHolmquist/inventory-system.git
+cd inventory-system
+```
+
+2. Start with Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+3. Access via browser:
+
+- Inventory API: [http://localhost:5274/swagger](http://localhost:5274/swagger)
+- RabbitMQ UI: [http://localhost:15672](http://localhost:15672) (user/password: guest/guest)
+
+---
+
+## 🗂️ Project Structure
+
+```
+inventory-system/
+│
+├── Inventory.API/              # Producer microservice
+│   ├── Controllers/
+│   ├── Models/
+│   ├── Services/
+│   ├── RabbitMQ/               # Publisher and config
+│
+├── Notification.Service/       # Consumer microservice
+│   ├── Consumers/
+│   ├── Models/
+│   ├── Data/
+│   ├── RabbitMQ/               # Consumer and config
+│
+├── docker-compose.yml
+└── README.md
+```
+
+---
+
+## 📌 Notes
+
+- ✅ A custom Circuit Breaker was implemented in Notification.Service without Polly.
+
+- It opens after 3 consecutive message processing failures and remains open for 15 seconds.
+
+- During this time, new messages are requeued, and processing is paused.
+
+- The circuit automatically resets after the cooldown period, ensuring resiliency.
+
+---
+
+## 📧 Contact
+
+Developed by **Simón Holmquist**  
+[GitHub](https://github.com/SimonHolmquist)
