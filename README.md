@@ -1,117 +1,129 @@
-# 🧪 Backend .NET Challenge — Inventory Notification System
+# Inventory System - .NET Technical Challenge
 
-This repository contains the implementation of a technical challenge for a Backend .NET Developer role.  
-The goal was to design and implement an event-driven microservice system for inventory updates using RabbitMQ as the messaging middleware.
+This project implements an inventory notification system using two microservices built with **.NET 8** and communicating via **RabbitMQ**.
 
----
+## 🧩 Architecture
 
-## 📦 Project Overview
+```
++-------------------+        RabbitMQ         +-------------------------+
+|                   |  --------------------> |                         |
+|  Inventory.API    |  [inventory_exchange]   |  Notification.Service   |
+|  (Producer)       |                        |  (Consumer)             |
++-------------------+                        +-------------------------+
+```
 
-This solution is composed of two microservices:
-
-| Project               | Description                                                        |
-|------------------------|--------------------------------------------------------------------|
-| `Inventory.API`        | A RESTful API to manage products. It acts as the event **producer** |
-| `Notification.Service` | A background service that listens to events and **persists them**   |
-
----
-
-## 🎯 Requirements Implemented
-
-- ✅ Product CRUD API (`GET`, `POST`, `PUT`, `DELETE`) in `Inventory.API`
-- ✅ Event publishing on product creation, update, deletion
-- ✅ RabbitMQ integration with a direct exchange: `inventory_exchange`
-- ✅ Queues: `product.created.queue`, `product.updated.queue`, `product.deleted.queue`
-- ✅ Consumer running as a hosted background service (`Notification.Service`)
-- ✅ Events stored in a local SQLite database (`ProductEvents` table)
-- ✅ Error handling and resilience mechanisms in consumer
+- **Inventory.API**: Exposes a RESTful API to manage products.
+- **Notification.Service**: Listens to product events and logs them to a local database.
 
 ---
 
-## 🚀 How to Run the Project
+## 🚀 Services
 
-### Prerequisites
+### 📦 Inventory.API
 
-- [.NET SDK 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop)
+RESTful API for inventory product management.
+
+**Endpoints:**
+- `GET /api/products` - List all products
+- `GET /api/products/{id}` - Get product by ID
+- `POST /api/products` - Create new product
+- `PUT /api/products/{id}` - Update existing product
+- `DELETE /api/products/{id}` - Delete product
+
+**Product model:**
+```json
+{
+  "id": 1,
+  "name": "Product A",
+  "description": "Product description",
+  "price": 100.00,
+  "stock": 50,
+  "category": "Electronics"
+}
+```
+
+Each action emits a corresponding event to RabbitMQ.
 
 ---
 
-### Step 1 – Start RabbitMQ
+### 📬 Notification.Service
+
+This service consumes events from RabbitMQ:
+
+- Subscribed to:
+  - `product.created.queue`
+  - `product.updated.queue`
+  - `product.deleted.queue`
+- Saves all received events into a local SQLite database.
+- Implements basic error handling and validation.
+
+---
+
+## ⚙️ Technologies Used
+
+- .NET 8
+- RabbitMQ
+- Entity Framework Core
+- SQLite
+- Docker / Docker Compose
+- Swagger (for Inventory.API)
+
+---
+
+## 🐳 Running with Docker
+
+1. Clone the repository:
 
 ```bash
-docker compose up -d
+git clone https://github.com/SimonHolmquist/inventory-system.git
+cd inventory-system
 ```
 
-> 📍 RabbitMQ Management UI: [http://localhost:15672](http://localhost:15672)  
-> Default credentials: `guest` / `guest`
-
----
-
-### Step 2 – Run the Inventory API
+2. Start with Docker Compose:
 
 ```bash
-cd inventory-api/Inventory.API
-dotnet run
+docker-compose up --build
 ```
 
-> API available at: `https://localhost:5274/swagger`  
-> Test product creation, updates, and deletion via Swagger
+3. Access via browser:
+
+- Inventory API: [http://localhost:5274/swagger](http://localhost:5274/swagger)
+- RabbitMQ UI: [http://localhost:15672](http://localhost:15672) (user/password: guest/guest)
 
 ---
 
-### Step 3 – Run the Notification Service
+## 🗂️ Project Structure
 
-```bash
-cd notification-service/Notification.Service
-dotnet run
+```
+inventory-system/
+│
+├── Inventory.API/              # Producer microservice
+│   ├── Controllers/
+│   ├── Models/
+│   ├── Services/
+│   ├── RabbitMQ/               # Publisher and config
+│
+├── Notification.Service/       # Consumer microservice
+│   ├── Consumers/
+│   ├── Models/
+│   ├── Data/
+│   ├── RabbitMQ/               # Consumer and config
+│
+├── docker-compose.yml
+└── README.md
 ```
 
-> This service subscribes to product events and stores them in `notification-dev.db`
+---
+
+## 📌 Notes
+
+- **Polly is not used**, but basic error handling is implemented.
+- **Circuit Breaker pattern** can be added later for enhanced resiliency.
+- The current implementation fully meets the technical challenge requirements.
 
 ---
 
-## 📂 Architecture Diagram
+## 📧 Contact
 
-```txt
-[Inventory.API] ---> [RabbitMQ] ---> [Notification.Service] ---> [SQLite]
-     (POST/PUT/DEL)     (Events)         (Consumes events)         (Persists)
-```
-
----
-
-## 🔧 Configuration
-
-Both projects use:
-
-- `appsettings.json` and `appsettings.Development.json`
-- SQLite connection string: `"Data Source=inventory-dev.db"` / `"notification-dev.db"`
-- `launchSettings.json` to set `DOTNET_ENVIRONMENT`
-
----
-
-## 📄 Technologies Used
-
-- [.NET 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
-- ASP.NET Core Web API
-- RabbitMQ (with Docker)
-- Entity Framework Core (SQLite)
-- Hosted BackgroundService
-- Docker Compose
-
----
-
-## 📁 Deliverables Checklist
-
-- ✅ Code for both services (Inventory + Notifications)
-- ✅ Swagger UI for API testing
-- ✅ Docker Compose for RabbitMQ
-- ✅ Architecture diagram (in README)
-- ✅ Event-driven flow with RabbitMQ
-- ✅ Local DB persistence
-
----
-
-## 👨‍💻 Author
-
-Challenge implemented by [Simón Holmquist](https://www.linkedin.com/in/simonholmquist)
+Developed by **Simón Holmquist**  
+[GitHub](https://github.com/SimonHolmquist)
