@@ -117,9 +117,13 @@ inventory-system/
 
 ## 📌 Notes
 
-- **Polly is not used**, but basic error handling is implemented.
-- **Circuit Breaker pattern** can be added later for enhanced resiliency.
-- The current implementation fully meets the technical challenge requirements.
+- ✅ A custom Circuit Breaker was implemented in Notification.Service without Polly.
+
+- It opens after 3 consecutive message processing failures and remains open for 15 seconds.
+
+- During this time, new messages are requeued, and processing is paused.
+
+- The circuit automatically resets after the cooldown period, ensuring resiliency.
 
 ---
 
