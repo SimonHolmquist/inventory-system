@@ -99,15 +99,19 @@ inventory-system/
 │
 ├── Inventory.API/              # Producer microservice
 │   ├── Controllers/
+│   ├── Data/
 │   ├── Models/
-│   ├── Services/
-│   ├── RabbitMQ/               # Publisher and config
+│   ├── Messaging/               # Publisher and config
+│   ├── DTOs/
+│   ├── Migrations/
 │
 ├── Notification.Service/       # Consumer microservice
-│   ├── Consumers/
+│   ├── Data/
 │   ├── Models/
 │   ├── Data/
-│   ├── RabbitMQ/               # Consumer and config
+│   ├── Resilience/
+│   ├── Messaging/               # Consumer and config
+|   ├── Migrations/
 │
 ├── docker-compose.yml
 └── README.md
