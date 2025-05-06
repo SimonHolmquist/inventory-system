@@ -12,8 +12,7 @@ builder.Configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true);
 
 builder.Services.AddDbContext<NotificationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))); // 'UseSqlite' requires Microsoft.EntityFrameworkCore
-
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddHostedService<ProductEventConsumer>();
 
 var app = builder.Build();
