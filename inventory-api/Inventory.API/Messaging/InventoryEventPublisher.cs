@@ -27,13 +27,13 @@ public class InventoryEventPublisher(IConfiguration configuration)
 
         using var connection = await factory.CreateConnectionAsync();
         using var channel = await connection.CreateChannelAsync();
-
+      
         await channel.ExchangeDeclareAsync(exchange: _exchange, type: ExchangeType.Topic, durable: true);
 
         await DeclareQueueAndBindAsync(channel, "product.created.queue", "product.created");
         await DeclareQueueAndBindAsync(channel, "product.updated.queue", "product.updated");
         await DeclareQueueAndBindAsync(channel, "product.deleted.queue", "product.deleted");
-
+      
         var message = JsonSerializer.Serialize(data);
         var body = Encoding.UTF8.GetBytes(message);
 
@@ -42,18 +42,5 @@ public class InventoryEventPublisher(IConfiguration configuration)
             routingKey: routingKey,
             body: body
         );
-    }
-
-    private async Task DeclareQueueAndBindAsync(IChannel channel, string queueName, string routingKey)
-    {
-        await channel.QueueDeclareAsync(queue: queueName,
-                                        durable: true,
-                                        exclusive: false,
-                                        autoDelete: false,
-                                        arguments: null);
-
-        await channel.QueueBindAsync(queue: queueName,
-                                     exchange: _exchange,
-                                     routingKey: routingKey);
     }
 }
