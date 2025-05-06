@@ -49,6 +49,7 @@ namespace Notification.Service.Messaging
 
             consumer.ReceivedAsync += async (sender, ea) =>
             {
+
                 if (!_circuitBreaker.CanExecute())
                 {
                     _logger.LogWarning("Circuit breaker is open. Skipping message.");

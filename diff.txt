@@ -1,0 +1,163 @@
+diff --git a/docker-compose.yml b/docker-compose.yml
+index e5280df..437c813 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -18,7 +18,7 @@ services:
+       context: ./inventory-api
+       dockerfile: Inventory.API/Dockerfile
+     environment:
+-      - ASPNETCORE_ENVIRONMENT=Development
++      - ASPNETCORE_ENVIRONMENT=Docker
+       - ASPNETCORE_URLS=http://+:80
+     ports:
+       - "5274:80"
+@@ -32,7 +32,7 @@ services:
+       context: ./notification-service
+       dockerfile: Notification.Service/Dockerfile
+     environment:
+-      - DOTNET_ENVIRONMENT=Development
++      - DOTNET_ENVIRONMENT=Docker
+     volumes:
+       - notification-data:/app/data
+     depends_on:
+diff --git a/inventory-api/Inventory.API/Program.cs b/inventory-api/Inventory.API/Program.cs
+index c436188..d1dcb6d 100644
+--- a/inventory-api/Inventory.API/Program.cs
++++ b/inventory-api/Inventory.API/Program.cs
+@@ -25,7 +25,6 @@ builder.Services.AddSwaggerGen(c =>
+ });
+ builder.Services.AddSingleton<InventoryEventPublisher>();
+ builder.Services.AddControllers();
+-builder.WebHost.UseUrls("http://0.0.0.0:80");
+ Console.WriteLine("Current ENV: " + builder.Environment.EnvironmentName);
+ builder.Configuration
+     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+@@ -33,6 +32,11 @@ builder.Configuration
+ 
+ var app = builder.Build();
+ 
++if (app.Environment.IsEnvironment("Docker"))
++{
++    builder.WebHost.UseUrls("http://0.0.0.0:80");
++}
++
+ app.UseSwagger();
+ app.UseSwaggerUI();
+ 
+diff --git a/inventory-api/Inventory.API/Properties/launchSettings.json b/inventory-api/Inventory.API/Properties/launchSettings.json
+index eb19bcf..584f3de 100644
+--- a/inventory-api/Inventory.API/Properties/launchSettings.json
++++ b/inventory-api/Inventory.API/Properties/launchSettings.json
+@@ -13,7 +13,7 @@
+       "commandName": "Docker",
+       "launchBrowser": false,
+       "environmentVariables": {
+-        "ASPNETCORE_ENVIRONMENT": "Development"
++        "ASPNETCORE_ENVIRONMENT": "Docker"
+       }
+     }
+   }
+diff --git a/inventory-api/Inventory.API/appsettings.Development.json b/inventory-api/Inventory.API/appsettings.Development.json
+index 2586b2a..ca73109 100644
+--- a/inventory-api/Inventory.API/appsettings.Development.json
++++ b/inventory-api/Inventory.API/appsettings.Development.json
+@@ -1,12 +1,9 @@
+ {
+   "ConnectionStrings": {
+-    "DefaultConnection": "Data Source=/app/data/inventory-dev.db"
++    "DefaultConnection": "Data Source=inventory-dev.db"
+   },
+   "RabbitMQ": {
+-    "Host": "rabbitmq",
+-    "Port": 5672,
+-    "Username": "guest",
+-    "Password": "guest",
++    "Host": "localhost",
+     "Exchange": "inventory_exchange"
+   },
+   "Logging": {
+diff --git a/inventory-api/Inventory.API/appsettings.json b/inventory-api/Inventory.API/appsettings.json
+index 46669ae..d748063 100644
+--- a/inventory-api/Inventory.API/appsettings.json
++++ b/inventory-api/Inventory.API/appsettings.json
+@@ -1,12 +1,12 @@
+ {
+   "ConnectionStrings": {
+-    "DefaultConnection": ""
++    "DefaultConnection": "Data Source=/app/data/inventory.db"
+   },
+   "RabbitMQ": {
+-    "Host": "",
+-    "Port": 0,
+-    "Username": "",
+-    "Password": "",
++    "Host": "rabbitmq",
++    "Port": 5672,
++    "Username": "guest",
++    "Password": "guest",
+     "Exchange": "inventory_exchange"
+   },
+   "Logging": {
+diff --git a/notification-service/Notification.Service/Messaging/ProductEventConsumer.cs b/notification-service/Notification.Service/Messaging/ProductEventConsumer.cs
+index 218055f..24c8324 100644
+--- a/notification-service/Notification.Service/Messaging/ProductEventConsumer.cs
++++ b/notification-service/Notification.Service/Messaging/ProductEventConsumer.cs
+@@ -49,6 +49,7 @@ namespace Notification.Service.Messaging
+ 
+             consumer.ReceivedAsync += async (sender, ea) =>
+             {
++
+                 if (!_circuitBreaker.CanExecute())
+                 {
+                     _logger.LogWarning("Circuit breaker is open. Skipping message.");
+diff --git a/notification-service/Notification.Service/Properties/launchSettings.json b/notification-service/Notification.Service/Properties/launchSettings.json
+index 4873578..ece6beb 100644
+--- a/notification-service/Notification.Service/Properties/launchSettings.json
++++ b/notification-service/Notification.Service/Properties/launchSettings.json
+@@ -5,6 +5,13 @@
+       "environmentVariables": {
+         "DOTNET_ENVIRONMENT": "Development"
+       }
++    },
++    "Docker": {
++      "commandName": "Docker",
++      "launchBrowser": false,
++      "environmentVariables": {
++        "DOTNET_ENVIRONMENT": "Docker"
++      }
+     }
+   }
+ }
+diff --git a/notification-service/Notification.Service/appsettings.Development.json b/notification-service/Notification.Service/appsettings.Development.json
+index 09a5c89..abf29e3 100644
+--- a/notification-service/Notification.Service/appsettings.Development.json
++++ b/notification-service/Notification.Service/appsettings.Development.json
+@@ -1,9 +1,9 @@
+ {
+   "ConnectionStrings": {
+-    "DefaultConnection": "Data Source=/app/data/notification-dev.db"
++    "DefaultConnection": "Data Source=notification-dev.db"
+   },
+   "RabbitMQ": {
+-    "Host": "rabbitmq",
++    "Host": "localhost",
+     "Exchange": "inventory_exchange"
+   },
+   "Logging": {
+diff --git a/notification-service/Notification.Service/appsettings.json b/notification-service/Notification.Service/appsettings.json
+index 127e000..04b468b 100644
+--- a/notification-service/Notification.Service/appsettings.json
++++ b/notification-service/Notification.Service/appsettings.json
+@@ -1,9 +1,10 @@
+ {
+   "ConnectionStrings": {
+-    "DefaultConnection": "Data Source=notification.db"
++    "DefaultConnection": "Data Source=/app/data/notification.db"
+   },
+   "RabbitMQ": {
+-    "Host": "rabbitmq"
++    "Host": "rabbitmq",
++    "Exchange": "inventory_exchange"
+   },
+   "Logging": {
+     "LogLevel": {

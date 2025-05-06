@@ -25,13 +25,17 @@ builder.Services.AddSwaggerGen(c =>
 });
 builder.Services.AddSingleton<InventoryEventPublisher>();
 builder.Services.AddControllers();
-builder.WebHost.UseUrls("http://0.0.0.0:80");
 Console.WriteLine("Current ENV: " + builder.Environment.EnvironmentName);
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
 var app = builder.Build();
+
+if (app.Environment.IsEnvironment("Docker"))
+{
+    builder.WebHost.UseUrls("http://0.0.0.0:80");
+}
 
 app.UseSwagger();
 app.UseSwaggerUI();
