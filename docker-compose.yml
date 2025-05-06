@@ -1,10 +1,44 @@
 services:
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+
+  inventory-api:
+    build:
+      context: ./inventory-api
+      dockerfile: Inventory.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    ports:
+      - "5274:80"
+    volumes:
+      - inventory-data:/app/data
+    depends_on:
+      - rabbitmq
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Notification.Service/Dockerfile
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+    volumes:
+      - notification-data:/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  inventory-data:
+  notification-data:

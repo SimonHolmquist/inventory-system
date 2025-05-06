@@ -16,4 +16,9 @@ builder.Services.AddDbContext<NotificationDbContext>(options =>
 builder.Services.AddHostedService<ProductEventConsumer>();
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
+    db.Database.Migrate();
+}
 await app.RunAsync();
