@@ -1,14 +1,13 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
+using Notification.Service.Data;
+using Notification.Service.Models;
+using Notification.Service.Resilience;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
-using Notification.Service.Data;
-using Notification.Service.Models;
-using Microsoft.Extensions.DependencyInjection;
-using Notification.Service.Resilience;
-using System.Threading;
 
 namespace Notification.Service.Messaging
 {
@@ -53,6 +52,7 @@ namespace Notification.Service.Messaging
                 if (!_circuitBreaker.CanExecute())
                 {
                     _logger.LogWarning("Circuit breaker is open. Skipping message.");
+                    await channel.BasicNackAsync(ea.DeliveryTag, false, requeue: true);
                     return;
                 }
 
@@ -73,11 +73,13 @@ namespace Notification.Service.Messaging
 
                     await db.SaveChangesAsync();
                     _circuitBreaker.RecordSuccess();
+                    await channel.BasicAckAsync(ea.DeliveryTag, false);
                     _logger.LogInformation("Event stored.");
                 }
                 catch (Exception ex)
                 {
                     _circuitBreaker.RecordFailure();
+                    await channel.BasicNackAsync(ea.DeliveryTag, false, requeue: true);
                     _logger.LogError(ex, "Error while processing message.");
                 }
             };

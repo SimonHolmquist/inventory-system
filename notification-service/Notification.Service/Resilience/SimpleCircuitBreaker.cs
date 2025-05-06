@@ -14,6 +14,7 @@
             {
                 _failureCount = 0;
                 _lastFailureTime = null;
+                Console.WriteLine("[CIRCUIT BREAKER] Closed. Ready to retry.");
                 return true;
             }
             return false;
@@ -29,7 +30,10 @@
         {
             _failureCount++;
             if (_failureCount >= _failureThreshold)
+            {
                 _lastFailureTime = DateTime.UtcNow;
+                Console.WriteLine("[CIRCUIT BREAKER] Opened due to repeated failures.");
+            }
         }
     }
 
