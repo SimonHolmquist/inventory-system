@@ -1,72 +1,58 @@
-# Inventory System - .NET Technical Challenge
+# Inventory System - .NET Microservices Challenge
 
-This project implements an inventory notification system using two microservices built with **.NET 8** and communicating via **RabbitMQ**.
+This project implements a distributed inventory notification system using microservices built with **.NET 8** and communicating asynchronously through **RabbitMQ**.
 
-## 🧩 Architecture
+## 🔧 Overview
 
-```
-+-------------------+        RabbitMQ         +-------------------------+
-|                   |  --------------------> |                         |
-|  Inventory.API    |  [inventory_exchange]   |  Notification.Service   |
-|  (Producer)       |                        |  (Consumer)             |
-+-------------------+                        +-------------------------+
-```
+The system is composed of two independent microservices:
 
-- **Inventory.API**: Exposes a RESTful API to manage products.
-- **Notification.Service**: Listens to product events and logs them to a local database.
+- **Inventory.API** (Producer): Exposes a RESTful API for product management. Each operation publishes an event to RabbitMQ.
+- **Notification.Service** (Consumer): Listens to RabbitMQ events and logs inventory changes to a local database.
+
+This technical challenge provided an opportunity to apply modern design practices, implement resiliency in distributed systems, and automate the environment setup with Docker.
 
 ---
 
-## 🚀 Services
+## 🧩 System Components
 
-### 📦 Inventory.API
+### Inventory.API
 
-RESTful API for inventory product management.
+Responsible for managing inventory products.
 
-**Endpoints:**
-- `GET /api/products` - List all products
-- `GET /api/products/{id}` - Get product by ID
-- `POST /api/products` - Create new product
-- `PUT /api/products/{id}` - Update existing product
-- `DELETE /api/products/{id}` - Delete product
+- **Framework**: ASP.NET Core 8
+- **Endpoints**:
+  - `GET /api/products`
+  - `GET /api/products/{id}`
+  - `POST /api/products`
+  - `PUT /api/products/{id}`
+  - `DELETE /api/products/{id}`
+- **Data Model**: ID, Name, Description, Price, Stock, Category
+- **Messaging**: Publishes events to RabbitMQ after each action
+- **API Documentation**: Available via Swagger
 
-**Product model:**
-```json
-{
-  "id": 1,
-  "name": "Product A",
-  "description": "Product description",
-  "price": 100.00,
-  "stock": 50,
-  "category": "Electronics"
-}
-```
+### Notification.Service
 
-Each action emits a corresponding event to RabbitMQ.
+Consumes inventory-related events from RabbitMQ.
 
----
-
-### 📬 Notification.Service
-
-This service consumes events from RabbitMQ:
-
-- Subscribed to:
+- **Subscriptions**:
   - `product.created.queue`
   - `product.updated.queue`
   - `product.deleted.queue`
-- Saves all received events into a local SQLite database.
-- Implements basic error handling and validation.
+- **Persistence**: SQLite local database
+- **Error Handling**: Custom Circuit Breaker implementation
+- **Validation**: Business and message validation logic included
 
 ---
 
-## ⚙️ Technologies Used
+## 🛠️ Technologies Used
 
 - .NET 8
 - RabbitMQ
 - Entity Framework Core
 - SQLite
 - Docker / Docker Compose
-- Swagger (for Inventory.API)
+- Swagger
+- FluentValidation
 
 ---
 
@@ -79,59 +65,31 @@ git clone https://github.com/SimonHolmquist/inventory-system.git
 cd inventory-system
 ```
 
-2. Start with Docker Compose:
+2. Start the services:
 
 ```bash
 docker-compose up --build
 ```
 
-3. Access via browser:
+3. Access:
 
-- Inventory API: [http://localhost:5274/swagger](http://localhost:5274/swagger)
-- RabbitMQ UI: [http://localhost:15672](http://localhost:15672) (user/password: guest/guest)
-
----
-
-## 🗂️ Project Structure
-
-```
-inventory-system/
-│
-├── Inventory.API/              # Producer microservice
-│   ├── Controllers/
-│   ├── Data/
-│   ├── Models/
-│   ├── Messaging/               # Publisher and config
-│   ├── DTOs/
-│   ├── Migrations/
-│
-├── Notification.Service/       # Consumer microservice
-│   ├── Data/
-│   ├── Models/
-│   ├── Data/
-│   ├── Resilience/
-│   ├── Messaging/               # Consumer and config
-|   ├── Migrations/
-│
-├── docker-compose.yml
-└── README.md
-```
+- Swagger (Inventory API): [http://localhost:5274/swagger](http://localhost:5274/swagger)
+- RabbitMQ UI: [http://localhost:15672](http://localhost:15672)  
+  (username/password: guest / guest)
 
 ---
 
-## 📌 Notes
+## 🧠 Key Concepts
 
-- ✅ A custom Circuit Breaker was implemented in Notification.Service without Polly.
-
-- It opens after 3 consecutive message processing failures and remains open for 15 seconds.
-
-- During this time, new messages are requeued, and processing is paused.
-
-- The circuit automatically resets after the cooldown period, ensuring resiliency.
+- Microservices architecture
+- Asynchronous communication with routing via event type
+- Decoupled responsibilities
+- Resilient processing with a custom Circuit Breaker (without Polly)
+- Domain and DTO validation
+- Environment automation with Docker Compose
 
 ---
 
-## 📧 Contact
+## 👤 Author
 
 Developed by **Simón Holmquist**  
-[GitHub](https://github.com/SimonHolmquist)
